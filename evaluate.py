@@ -6,49 +6,58 @@ import yaml
 import torch.nn as nn
 from torch.utils.data import DataLoader
 
-from utils.model import get_model, get_vocoder
+# from utils.model import get_model, get_vocoder
 from utils.tools import to_device, log, synth_one_sample
 from model import FastSpeech2Loss
-from dataset import Dataset
+# from dataset import Dataset
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-def evaluate(model, step, configs, logger=None, vocoder=None):
-    preprocess_config, model_config, train_config = configs
+def evaluate(val_loader, model, step, hps, logger=None, vocoder=None):
+    # preprocess_config, model_config, train_config = configs
 
     # Get dataset
-    dataset = Dataset(
-        "val.txt", preprocess_config, train_config, sort=False, drop_last=False
-    )
-    batch_size = train_config["optimizer"]["batch_size"]
-    loader = DataLoader(
-        dataset,
-        batch_size=batch_size,
-        shuffle=False,
-        collate_fn=dataset.collate_fn,
-    )
+    # dataset = Dataset(
+    #     "val.txt", preprocess_config, train_config, sort=False, drop_last=False
+    # )
+    batch_size = hps.train["optimizer"]["batch_size"]
 
     # Get loss function
-    Loss = FastSpeech2Loss(preprocess_config, model_config).to(device)
+    Loss = FastSpeech2Loss(hps.data.audio.pitch.feature, hps.data.audio.energy.feature).to(device)
 
     # Evaluation
     loss_sums = [0 for _ in range(6)]
-    for batchs in loader:
-        for batch in batchs:
-            batch = to_device(batch, device)
-            with torch.no_grad():
-                # Forward
-                output = model(*(batch[2:]))
+    sample_num = 0
+    for batch in val_loader:
+        # for batch in batchs:
+        batch = to_device(batch, device)
+        with torch.no_grad():
+            # Forward
+            if not hps.xvector:
+                output = model(
+                    speakers=batch['spk_ids'],
+                    texts=batch['text_padded'],
+                    src_lens=batch['input_lengths'],
+                    max_src_len=torch.tensor([max(batch['input_lengths'])], device=device),
+                    mel_lens=batch['output_lengths'],
+                    max_mel_len=torch.tensor([max(batch['output_lengths'])], device=device),
+                    p_targets=batch['pitch_padded'],
+                    d_targets=batch['dur_padded'],
+                    e_targets=batch['energy_padded']
+                )
+            else:
+                raise NotImplementedError
 
-                # Cal Loss
-                losses = Loss(batch, output)
+            # Cal Loss
+            losses = Loss(batch, output)
 
-                for i in range(len(losses)):
-                    loss_sums[i] += losses[i].item() * len(batch[0])
+            for i in range(len(losses)):
+                loss_sums[i] += losses[i].item() * len(batch['text_padded'])
+            sample_num += len(batch["text_padded"])
 
-    loss_means = [loss_sum / len(dataset) for loss_sum in loss_sums]
+    loss_means = [loss_sum / sample_num for loss_sum in loss_sums]
 
     message = "Validation Step {}, Total Loss: {:.4f}, Mel Loss: {:.4f}, Mel PostNet Loss: {:.4f}, Pitch Loss: {:.4f}, Energy Loss: {:.4f}, Duration Loss: {:.4f}".format(
         *([step] + [l for l in loss_means])

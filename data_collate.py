@@ -101,7 +101,7 @@ class SpkIDCollateWithPE(BaseCollate):
         spk_ids = spk_ids[ids_sorted_decreasing]
 
         # num_var = batch[0]["var"].size(0)
-        max_target_len = max([x["pitch"].size(1) for x in batch])
+        max_target_len = max([x["pitch"].size(0) for x in batch])
         if max_target_len % self.n_frames_per_step != 0:
             max_target_len += self.n_frames_per_step - max_target_len % self.n_frames_per_step
             assert max_target_len % self.n_frames_per_step == 0
@@ -112,9 +112,9 @@ class SpkIDCollateWithPE(BaseCollate):
         energy_padded.zero_()
         for i in range(len(ids_sorted_decreasing)):
             pitch = batch[ids_sorted_decreasing[i]]["pitch"]
-            pitch_padded[i, :, :pitch.size(1)] = pitch
+            pitch_padded[i, :pitch.size(0)] = pitch
             energy = batch[ids_sorted_decreasing[i]]['energy']
-            energy_padded[i, :, :pitch.size(1)] = energy
+            energy_padded[i, :energy.size(0)] = energy
 
         base_data.update({
             "spk_ids": spk_ids,
@@ -130,7 +130,7 @@ class XvectorCollateWithPE(BaseCollate):
         xvectors = torch.cat(list(map(lambda x: x["xvector"].unsqueeze(0), batch)), dim=0)
         xvectors = xvectors[ids_sorted_decreasing]
 
-        max_target_len = max([x["pitch"].size(1) for x in batch])
+        max_target_len = max([x["pitch"].size(0) for x in batch])
         if max_target_len % self.n_frames_per_step != 0:
             max_target_len += self.n_frames_per_step - max_target_len % self.n_frames_per_step
             assert max_target_len % self.n_frames_per_step == 0
@@ -141,9 +141,9 @@ class XvectorCollateWithPE(BaseCollate):
         energy_padded.zero_()
         for i in range(len(ids_sorted_decreasing)):
             pitch = batch[ids_sorted_decreasing[i]]["pitch"]
-            pitch_padded[i, :, :pitch.size(1)] = pitch
+            pitch_padded[i, :pitch.size(0)] = pitch
             energy = batch[ids_sorted_decreasing[i]]['energy']
-            energy_padded[i, :, :pitch.size(1)] = energy
+            energy_padded[i, :energy.size(0)] = energy
 
         base_data.update({
             "xvector": xvectors,

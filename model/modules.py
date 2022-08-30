@@ -17,17 +17,17 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class VarianceAdaptor(nn.Module):
     """Variance Adaptor"""
 
-    def __init__(self, preprocess_config, model_config):
+    def __init__(self, data_config, model_config):
         super(VarianceAdaptor, self).__init__()
         self.duration_predictor = VariancePredictor(model_config)
         self.length_regulator = LengthRegulator()
         self.pitch_predictor = VariancePredictor(model_config)
         self.energy_predictor = VariancePredictor(model_config)
 
-        self.pitch_feature_level = preprocess_config["preprocessing"]["pitch"][
+        self.pitch_feature_level = data_config["audio"]["pitch"][
             "feature"
         ]
-        self.energy_feature_level = preprocess_config["preprocessing"]["energy"][
+        self.energy_feature_level = data_config["audio"]["energy"][
             "feature"
         ]
         assert self.pitch_feature_level in ["phoneme_level", "frame_level"]
@@ -38,12 +38,13 @@ class VarianceAdaptor(nn.Module):
         n_bins = model_config["variance_embedding"]["n_bins"]
         assert pitch_quantization in ["linear", "log"]
         assert energy_quantization in ["linear", "log"]
-        with open(
-            os.path.join(preprocess_config["path"]["preprocessed_path"], "stats.json")
-        ) as f:
-            stats = json.load(f)
-            pitch_min, pitch_max = stats["pitch"][:2]
-            energy_min, energy_max = stats["energy"][:2]
+        # with open(
+        #     os.path.join(preprocess_config["path"]["preprocessed_path"], "stats.json")
+        # ) as f:
+        #     stats = json.load(f)
+        #     pitch_min, pitch_max = stats["pitch"][:2]
+        #     energy_min, energy_max = stats["energy"][:2]
+        pitch_min, pitch_max, energy_min, energy_max = data_config['stat']
 
         if pitch_quantization == "log":
             self.pitch_bins = nn.Parameter(

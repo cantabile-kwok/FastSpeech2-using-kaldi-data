@@ -5,26 +5,21 @@ import torch.nn as nn
 class FastSpeech2Loss(nn.Module):
     """ FastSpeech2 Loss """
 
-    def __init__(self, preprocess_config, model_config):
+    def __init__(self, pitch_feature_level, energy_feature_level):
         super(FastSpeech2Loss, self).__init__()
-        self.pitch_feature_level = preprocess_config["preprocessing"]["pitch"][
-            "feature"
-        ]
-        self.energy_feature_level = preprocess_config["preprocessing"]["energy"][
-            "feature"
-        ]
+        self.pitch_feature_level = pitch_feature_level
+        self.energy_feature_level = energy_feature_level
         self.mse_loss = nn.MSELoss()
         self.mae_loss = nn.L1Loss()
 
     def forward(self, inputs, predictions):
         (
             mel_targets,
-            _,
-            _,
             pitch_targets,
             energy_targets,
-            duration_targets,
-        ) = inputs[6:]
+            duration_targets
+        ) = inputs['mel_padded'], inputs['pitch_padded'], inputs['energy_padded'], inputs['dur_padded']
+        mel_targets = mel_targets.permute(0, 2, 1)
         (
             mel_predictions,
             postnet_mel_predictions,

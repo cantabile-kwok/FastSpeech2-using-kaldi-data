@@ -24,8 +24,8 @@ class BaseLoader(torch.utils.data.Dataset):
         :param utts: file path. A list of utts for this loader. These are the only utts that this loader has access.
         This loader only deals with text, duration and feats. Other files despite `utts` can be larger.
         """
-        self.n_mel_channels = hparams.n_mel_channels
-        self.sampling_rate = hparams.sampling_rate
+        self.n_mel_channels = hparams.audio.mel.n_mel_channels
+        self.sampling_rate = hparams.audio.sampling_rate
         self.utts = self.get_utts(utts)
         self.utt2phn, self.phn2id = self.get_utt2phn(utt2phns, phn2id)
         self.vocab_len = len(self.phn2id.keys())
@@ -178,7 +178,7 @@ class SpkIDLoaderWithPE(SpkIDLoader):
         dur = self.get_dur_from_kaldi(utt)
         pitch, energy = self.get_var_from_kaldi(utt)
 
-        assert sum(dur) == mel.shape[1] == pitch.shape[1] == energy.shape[1], \
+        assert sum(dur) == mel.shape[1] == pitch.shape[0] == energy.shape[0], \
             f"Frame length mismatch: utt {utt}, dur: {sum(dur)}, mel: {mel.shape[1]}, pitch: {pitch.shape[1]}"
 
         res = {
@@ -276,7 +276,7 @@ class XvectorLoaderWithPE(XvectorLoader):
         xvector = self.get_xvector(utt)
         pitch, energy = self.get_var_from_kaldi(utt)
 
-        assert sum(dur) == mel.shape[1] == pitch.shape[1] == energy.shape[1], \
+        assert sum(dur) == mel.shape[1] == pitch.shape[0] == energy.shape[0], \
             f"Frame length mismatch: utt {utt}, dur: {sum(dur)}, mel: {mel.shape[1]}, pitch: {pitch.shape[1]}"
         assert len(dur) == len(phn_ids), \
             f"Duration length and text length mismatch :utt {utt}, dur: {len(dur)}, text: {len(phn_ids)}"

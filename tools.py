@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import data_loader as loaders
 import data_collate as collates
 import json
+import yaml
 
 from model.fastspeech2 import FastSpeech2, FastSpeech2Xvector
 
@@ -41,27 +42,22 @@ def latest_checkpoint_path(dir_path, regex="grad_*.pt"):
     return x
 
 
-# def load_checkpoint(logdir, model, num=None):
-#     if num is None:
-#         model_path = latest_checkpoint_path(logdir, regex="grad_*.pt")
-#     else:
-#         model_path = os.path.join(logdir, f"grad_{num}.pt")
-#     print(f'Loading checkpoint {model_path}...')
-#     model_dict = torch.load(model_path, map_location=lambda loc, storage: loc)
-#     model.load_state_dict(model_dict, strict=False)
-#     return model
 def load_checkpoint(checkpoint_path, model, optimizer=None):
     assert os.path.isfile(checkpoint_path)
     checkpoint_dict = torch.load(checkpoint_path, map_location='cpu')
-    iteration = 1
+    iteration = 0
     if 'iteration' in checkpoint_dict.keys():
         iteration = checkpoint_dict['iteration']
-    if 'learning_rate' in checkpoint_dict.keys():
-        learning_rate = checkpoint_dict['learning_rate']
-    else:
-        learning_rate = None
+    epoch = 0
+    if "epoch_logged" in checkpoint_dict.keys():
+        epoch = checkpoint_dict['epoch_logged']
+    # if 'learning_rate' in checkpoint_dict.keys():
+    #     learning_rate = checkpoint_dict['learning_rate']
+    # else:
+    #     learning_rate = None
     if optimizer is not None and 'optimizer' in checkpoint_dict.keys():
         optimizer.load_state_dict(checkpoint_dict['optimizer'])
+        optimizer.current_step = iteration + 1
     saved_state_dict = checkpoint_dict['model']
     if hasattr(model, 'module'):
         state_dict = model.module.state_dict()
@@ -78,9 +74,9 @@ def load_checkpoint(checkpoint_path, model, optimizer=None):
         model.module.load_state_dict(new_state_dict)
     else:
         model.load_state_dict(new_state_dict)
-    logger.info("Loaded checkpoint '{}' (iteration {})".format(
-        checkpoint_path, iteration))
-    return model, optimizer, learning_rate, iteration
+    logger.info("Loaded checkpoint '{}'".format(
+        checkpoint_path))
+    return model, optimizer, iteration, epoch
 
 
 def save_figure_to_numpy(fig):
@@ -111,6 +107,11 @@ def save_plot(tensor, savepath):
     plt.savefig(savepath)
     plt.close()
     return
+
+
+def get_param_num(model):
+    num_param = sum(param.numel() for param in model.parameters())
+    return num_param
 
 
 def get_correct_class(hps, train=True):
@@ -172,8 +173,8 @@ def get_correct_class(hps, train=True):
 
 def get_hparams(init=True):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default="./configs/base.json",
-                        help='JSON file for configuration')
+    parser.add_argument('-c', '--config', type=str, default="./configs/base.yaml",
+                        help='YAML file for configuration')
     parser.add_argument('-m', '--model', type=str, required=True,
                         help='Model name')
     parser.add_argument('-s', '--seed', type=int, default=1234)
@@ -186,7 +187,7 @@ def get_hparams(init=True):
         os.makedirs(model_dir)
 
     config_path = args.config
-    config_save_path = os.path.join(model_dir, "config.json")
+    config_save_path = os.path.join(model_dir, "config.yaml")
     if init:
         with open(config_path, "r") as f:
             data = f.read()
@@ -195,7 +196,8 @@ def get_hparams(init=True):
     else:
         with open(config_save_path, "r") as f:
             data = f.read()
-    config = json.loads(data)
+
+    config = yaml.load(data,  Loader=yaml.FullLoader)
 
     hparams = HParams(**config)
     hparams.model_dir = model_dir
@@ -266,8 +268,8 @@ def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path)
 
 def get_hparams_decode():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--config', type=str, default="./configs/base.json",
-                        help='JSON file for configuration')
+    parser.add_argument('-c', '--config', type=str, default="./configs/base.yaml",
+                        help='YAML file for configuration')
     parser.add_argument('-m', '--model', type=str, required=True,
                         help='Model name')
     parser.add_argument('-s', '--seed', type=int, default=1234)
@@ -292,7 +294,7 @@ def get_hparams_decode():
     config_save_path = os.path.join(model_dir, "config.json")  # NOTE: which config to load
     with open(config_path, "r") as f:
         data = f.read()
-    config = json.loads(data)
+    config = yaml.load(data, Loader=yaml.FullLoader)
 
     hparams = HParams(**config)
     hparams.model_dir = model_dir
