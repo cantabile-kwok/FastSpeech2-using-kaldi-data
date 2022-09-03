@@ -37,6 +37,8 @@ class FastSpeech2Loss(nn.Module):
         log_duration_targets = torch.log(duration_targets.float() + 1)
         mel_targets = mel_targets[:, : mel_masks.shape[1], :]
         mel_masks = mel_masks[:, :mel_masks.shape[1]]
+        # print("pitch and mel mask shape")
+        # print(pitch_targets.shape, mel_masks.shape)
 
         log_duration_targets.requires_grad = False
         pitch_targets.requires_grad = False

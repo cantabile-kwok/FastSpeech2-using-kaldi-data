@@ -47,7 +47,9 @@ def main(hps):
 
     # Prepare model
     # model, optimizer = get_model(args, configs, device, train=True)
+
     model = nn.DataParallel(model)
+    model.to(device)
     num_param = tools.get_param_num(model)
     optimizer = ScheduledOptim(
         model, hps.train, hps.model, current_step=0
@@ -61,6 +63,7 @@ def main(hps):
         print(f"Cannot find trained checkpoint, begin to train from scratch")
         epoch_start = 1
         iteration = 0
+
 
     Loss = FastSpeech2Loss(hps.data.audio.pitch.feature, hps.data.audio.energy.feature).to(device)
     print("Number of FastSpeech2 Parameters:", num_param)
@@ -93,21 +96,24 @@ def main(hps):
         inner_bar = tqdm(total=len(train_loader), desc="Epoch {}".format(epoch), position=1)
         for batch in train_loader:
             batch = to_device(batch, device)
+            # print(batch['pitch_padded'].shape, batch['mel_padded'].shape)
             if not hps.xvector:
-                output = model(
-                    speakers=batch['spk_ids'],
-                    texts=batch['text_padded'],
-                    src_lens=batch['input_lengths'],
-                    max_src_len=torch.tensor([max(batch['input_lengths'])], device=device),
-                    mel_lens=batch['output_lengths'],
-                    max_mel_len=torch.tensor([max(batch['output_lengths'])], device=device),
-                    p_targets=batch['pitch_padded'],
-                    d_targets=batch['dur_padded'],
-                    e_targets=batch['energy_padded']
-                )
+                spk = batch['spk_ids']
             else:
-                raise NotImplementedError
+                spk = batch['xvector']
 
+            output = model(
+                speakers=spk,
+                texts=batch['text_padded'],
+                src_lens=batch['input_lengths'],
+                max_src_len=max(batch['input_lengths']).item(),
+                mel_lens=batch['output_lengths'],
+                max_mel_len=max(batch['output_lengths']).item(),
+                p_targets=batch['pitch_padded'],
+                d_targets=batch['dur_padded'],
+                e_targets=batch['energy_padded']
+            )
+            # print([mat.shape for mat in output])
             # Cal Loss
             losses = Loss(batch, output)
             total_loss = losses[0]

@@ -36,19 +36,21 @@ def evaluate(val_loader, model, step, hps, logger=None, vocoder=None):
         with torch.no_grad():
             # Forward
             if not hps.xvector:
-                output = model(
-                    speakers=batch['spk_ids'],
-                    texts=batch['text_padded'],
-                    src_lens=batch['input_lengths'],
-                    max_src_len=torch.tensor([max(batch['input_lengths'])], device=device),
-                    mel_lens=batch['output_lengths'],
-                    max_mel_len=torch.tensor([max(batch['output_lengths'])], device=device),
-                    p_targets=batch['pitch_padded'],
-                    d_targets=batch['dur_padded'],
-                    e_targets=batch['energy_padded']
-                )
+                spk = batch['spk_ids']
             else:
-                raise NotImplementedError
+                spk = batch['xvector']
+
+            output = model(
+                speakers=spk,
+                texts=batch['text_padded'],
+                src_lens=batch['input_lengths'],
+                max_src_len=max(batch['input_lengths']).item(),
+                mel_lens=batch['output_lengths'],
+                max_mel_len=max(batch['output_lengths']).item(),
+                p_targets=batch['pitch_padded'],
+                d_targets=batch['dur_padded'],
+                e_targets=batch['energy_padded']
+            )
 
             # Cal Loss
             losses = Loss(batch, output)

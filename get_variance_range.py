@@ -15,12 +15,14 @@ if __name__ == '__main__':
 
     data_conf = config['data']
     pitch_min, pitch_max, energy_min, energy_max = np.inf, -np.inf, np.inf, -np.inf
-
-    for entry in ["train_var_scp", "val_var_scp"]:
+    max_frame_len = 1000
+    for entry in ["train_var_scp"]:
         scp = kaldiio.load_scp(data_conf[entry])
         for key in tqdm(scp.keys(), total=len(list(scp.keys()))):
             var = scp[key]
             shape = var.shape
+            frame_len = shape[0] if shape[1] == 5 else shape[1]
+            max_frame_len = max(frame_len, max_frame_len)
             p, e = (var[3, :], var[4, :]) if shape[0] == 5 else (var.T[3, :], var.T[4, :])
             pitch_min = min(p.min(), pitch_min)
             pitch_max = max(p.max(), pitch_max)
@@ -40,6 +42,7 @@ if __name__ == '__main__':
             v = int(v)
             max_value = max(v, max_value)
     config['model']['n_vocab'] = max_value + 1
+    config['model']['max_seq_len'] = max_frame_len + 1
 
     with open(args.config, 'w') as f:
         yaml.dump(config, f, indent=4)

@@ -219,7 +219,7 @@ class XvectorLoader(BaseLoader):
     def get_xvector(self, utt):
         xv = self.spk2xvector[self.utt2spk[utt]]
         xv = torch.FloatTensor(xv).squeeze()
-        xv = xv / 10  # NOTE: divide by 10 to ensure numerical stability
+        # xv = xv  # NOTE: divide by 10 to ensure numerical stability
         return xv
 
     def get_mel_text_pair(self, utt):

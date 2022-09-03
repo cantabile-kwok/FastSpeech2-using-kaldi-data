@@ -58,20 +58,20 @@ class FastSpeech2(nn.Module):
         e_control=1.0,
         d_control=1.0,
     ):
-        src_masks = get_mask_from_lengths(src_lens, max_src_len.item())
+        # print("pitch shape in model forward")
+        # print(p_targets.shape)
+        src_masks = get_mask_from_lengths(src_lens, max_src_len)
         mel_masks = (
-            get_mask_from_lengths(mel_lens, max_mel_len.item())
+            get_mask_from_lengths(mel_lens, max_mel_len)
             if mel_lens is not None
             else None
         )
 
         output = self.encoder(texts, src_masks)
 
-        if self.speaker_emb is not None:
-            output = output + self.speaker_emb(speakers).unsqueeze(1).expand(
-                -1, max_src_len.item(), -1
-            )
-
+        # if self.speaker_emb is not None:
+        output = output + self.speaker_emb(speakers).unsqueeze(1).expand(-1, max_src_len, -1)
+        # print("output shape after spk embedding added", output.shape)
         (
             output,
             p_predictions,
@@ -84,7 +84,7 @@ class FastSpeech2(nn.Module):
             output,
             src_masks,
             mel_masks,
-            max_mel_len.item(),
+            max_mel_len if max_mel_len is not None else None,
             p_targets,
             e_targets,
             d_targets,
@@ -92,9 +92,11 @@ class FastSpeech2(nn.Module):
             e_control,
             d_control,
         )
+        # print("output shape after variance predictor", output.shape)
 
         output, mel_masks = self.decoder(output, mel_masks)
         output = self.mel_linear(output)
+        # print("output shape after decoder", output.shape)
 
         postnet_output = self.postnet(output) + output
 
@@ -115,17 +117,16 @@ class FastSpeech2(nn.Module):
 class FastSpeech2Xvector(nn.Module):
     """ FastSpeech2 """
 
-    def __init__(self, preprocess_config, model_config):
-        raise NotImplementedError
+    def __init__(self, data_config, model_config):
         super(FastSpeech2Xvector, self).__init__()
         self.model_config = model_config
 
         self.encoder = Encoder(model_config)
-        self.variance_adaptor = VarianceAdaptor(preprocess_config, model_config)
+        self.variance_adaptor = VarianceAdaptor(data_config, model_config)
         self.decoder = Decoder(model_config)
         self.mel_linear = nn.Linear(
             model_config["transformer"]["decoder_hidden"],
-            preprocess_config["preprocessing"]["mel"]["n_mel_channels"],
+            data_config["audio"]["mel"]["n_mel_channels"],
         )
         self.postnet = PostNet()
 
@@ -142,12 +143,15 @@ class FastSpeech2Xvector(nn.Module):
         #         n_speaker,
         #         model_config["transformer"]["encoder_hidden"],
         #     )
-        n_speaker = model_config['n_speaker']
-        self.speaker_emb = nn.Embedding(n_speaker, model_config["transformer"]["encoder_hidden"])
+        self.xvector_linear = nn.Sequential(
+            nn.Linear(model_config['xvector_dim'], model_config['xvector_dim']//2),
+            nn.ReLU(),
+            nn.Linear(model_config['xvector_dim']//2, model_config["transformer"]["encoder_hidden"])
+        )
 
     def forward(
         self,
-        speakers,  # spk id seq
+        speakers,  # spk xvector seq
         texts,  # phn id seq
         src_lens,
         max_src_len,
@@ -170,10 +174,10 @@ class FastSpeech2Xvector(nn.Module):
 
         output = self.encoder(texts, src_masks)
 
-        if self.speaker_emb is not None:
-            output = output + self.speaker_emb(speakers).unsqueeze(1).expand(
-                -1, max_src_len, -1
-            )
+        # if self.speaker_emb is not None:
+        output = output + self.xvector_linear(speakers).unsqueeze(1).expand(
+            -1, max_src_len, -1
+        )  # speakers: B, xv_dim.
 
         (
             output,
