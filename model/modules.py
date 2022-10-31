@@ -40,8 +40,8 @@ class VarianceAdaptor(nn.Module):
         assert energy_quantization in ["linear", "log"]
 
         pitch_min, pitch_max, energy_min, energy_max = data_config['stat']
-        if data_config['is_log_pitch']:
-            pitch_min, pitch_max = math.exp(pitch_min), math.exp(pitch_max)  # following ming's implementation, we only quantize the raw pitch.
+        # if data_config['is_log_pitch']:
+        #     pitch_min, pitch_max = math.exp(pitch_min), math.exp(pitch_max)  # following ming's implementation, we only quantize the raw pitch.
 
         if pitch_quantization == "log":
             self.pitch_bins = nn.Parameter(
@@ -145,6 +145,7 @@ class VarianceAdaptor(nn.Module):
             )
             x = x + energy_embedding
 
+        # print(f"Before variance adaptor returning, pitch prediction shape is {pitch_prediction.shape}")
         return (
             x,
             pitch_prediction,

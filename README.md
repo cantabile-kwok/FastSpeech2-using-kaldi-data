@@ -73,3 +73,8 @@ python inference.py -c configs/${name}.yaml -m $name \
 will only synthesize this utterance. It can be used together with speaker controlling options.
 
 You can also use `-s` or `--seed` to control random seed, and `--dataset train/val` to select a dataset to be synthesized (the default is val).
+
+---
+## Update for pitch processing
+Please use a variance.scp **before CMVN**. Then set `is_log_pitch` in conf to True, then run `get_variance_range.py`. 
+This will automatically process the variance (i.e. find mean and variance, normalize, and record min/max values) and save to filelists/${name}/processed_pe.scp (and ark).

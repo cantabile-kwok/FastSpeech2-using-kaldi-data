@@ -147,15 +147,16 @@ class SpkIDLoader(BaseLoader):
 
 class SpkIDLoaderWithPE(SpkIDLoader):
     def __init__(self, utts: str, hparams, feats_scp: str, utt2phns: str, phn2id: str,
-                 utt2phn_duration: str, utt2spk: str, var_scp: str, is_log_pitch: bool = True, pitch_energy_dims: tuple = (3, 4)):
+                 utt2phn_duration: str, utt2spk: str, var_scp: str, pitch_energy_dims: tuple = (3, 4)):
         """
         This loader loads speaker ID together with variance (4-dim pitch, 1-dim energy)
         """
         super(SpkIDLoaderWithPE, self).__init__(utts, hparams, feats_scp, utt2phns, phn2id, utt2phn_duration, utt2spk)
-        self.is_log_pitch = is_log_pitch
+        # self.is_log_pitch = is_log_pitch
         self.pitch_energy_dims = pitch_energy_dims
-        if self.is_log_pitch:
-            print(f"Input pitch is log pitch. Will convert to raw pitch in training.")
+        # if self.is_log_pitch:
+        #     print(f"Input pitch is log pitch. Will convert to raw pitch in training.\n"
+        #           "Make sure you are not using variance after cmvn here.")
         self.utt2var = self.get_utt2var(var_scp)
 
     def get_utt2var(self, utt2var: str) -> dict:
@@ -169,16 +170,16 @@ class SpkIDLoaderWithPE(SpkIDLoader):
         var = self.utt2var[utt]
         var = torch.FloatTensor(var).squeeze()
         # assert 5 in var.shape
-        if not self.is_log_pitch:
-            if var.shape[0] == 5:
-                return var[self.pitch_energy_dims[0], :], var[self.pitch_energy_dims[1], :]
-            else:
-                return var.T[self.pitch_energy_dims[0], :], var.T[self.pitch_energy_dims[1], :]
-        else:
-            if var.shape[0] == 5:
-                return var[self.pitch_energy_dims[0], :].exp(), var[self.pitch_energy_dims[1], :]
-            else:
-                return var.T[self.pitch_energy_dims[0], :].exp(), var.T[self.pitch_energy_dims[1], :]
+        # if not self.is_log_pitch:
+        # if var.shape[0] == 5:
+        #     return var[self.pitch_energy_dims[0], :], var[self.pitch_energy_dims[1], :]
+        # else:
+        return var.T[self.pitch_energy_dims[0], :], var.T[self.pitch_energy_dims[1], :]
+        # else:
+        #     if var.shape[0] == 5:
+        #         return var[self.pitch_energy_dims[0], :].exp(), var[self.pitch_energy_dims[1], :]
+        #     else:
+        #         return var.T[self.pitch_energy_dims[0], :].exp(), var.T[self.pitch_energy_dims[1], :]
 
     def get_mel_text_pair(self, utt):
         # separate filename and text
@@ -255,17 +256,18 @@ class XvectorLoader(BaseLoader):
 
 class XvectorLoaderWithPE(XvectorLoader):
     def __init__(self, utts: str, hparams, feats_scp: str, utt2phns: str, phn2id: str,
-                 utt2phn_duration: str, utt2spk_name: str, spk_xvector_scp: str, var_scp: str, is_log_pitch: bool = True,
+                 utt2phn_duration: str, utt2spk_name: str, spk_xvector_scp: str, var_scp: str,
                  pitch_energy_dims: tuple = (3, 4)):
         """
         This loader loads speaker ID together with variance (4-dim pitch, 1-dim energy)
         """
         super(XvectorLoaderWithPE, self).__init__(utts, hparams, feats_scp, utt2phns, phn2id,
                                                   utt2phn_duration, utt2spk_name, spk_xvector_scp)
-        self.is_log_pitch = is_log_pitch
+        # self.is_log_pitch = is_log_pitch
         self.pitch_energy_dims = pitch_energy_dims
-        if self.is_log_pitch:
-            print(f"Input pitch is log pitch. Will convert to raw pitch in training.")
+        # if self.is_log_pitch:
+        #     print(f"Input pitch is log pitch. Will convert to raw pitch in training.\n"
+        #           "Make sure you are not using variance after cmvn here.")
         self.utt2var = self.get_utt2var(var_scp)
 
     def get_utt2var(self, utt2var: str) -> dict:
@@ -279,16 +281,16 @@ class XvectorLoaderWithPE(XvectorLoader):
         var = self.utt2var[utt]
         var = torch.FloatTensor(var).squeeze()
         # assert 5 in var.shape
-        if not self.is_log_pitch:
-            if var.shape[0] == 5:
-                return var[self.pitch_energy_dims[0], :], var[self.pitch_energy_dims[1], :]
-            else:
-                return var.T[self.pitch_energy_dims[0], :], var.T[self.pitch_energy_dims[1], :]
-        else:
-            if var.shape[0] == 5:
-                return var[self.pitch_energy_dims[0], :].exp(), var[self.pitch_energy_dims[1], :]
-            else:
-                return var.T[self.pitch_energy_dims[0], :].exp(), var.T[self.pitch_energy_dims[1], :]
+        # if not self.is_log_pitch:
+        #     if var.shape[0] == 5:
+        #         return var[self.pitch_energy_dims[0], :], var[self.pitch_energy_dims[1], :]
+        #     else:
+        return var.T[self.pitch_energy_dims[0], :], var.T[self.pitch_energy_dims[1], :]
+        # else:
+        #     if var.shape[0] == 5:
+        #         return var[self.pitch_energy_dims[0], :].exp(), var[self.pitch_energy_dims[1], :]
+        #     else:
+        #         return var.T[self.pitch_energy_dims[0], :].exp(), var.T[self.pitch_energy_dims[1], :]
 
     def get_mel_text_pair(self, utt):
         phn_ids = self.get_text(utt)
