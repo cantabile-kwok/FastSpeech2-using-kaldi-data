@@ -64,7 +64,6 @@ def main(hps):
         epoch_start = 1
         iteration = 0
 
-
     Loss = FastSpeech2Loss(hps.data.audio.pitch.feature, hps.data.audio.energy.feature).to(device)
     print("Number of FastSpeech2 Parameters:", num_param)
 

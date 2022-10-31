@@ -147,11 +147,15 @@ class SpkIDLoader(BaseLoader):
 
 class SpkIDLoaderWithPE(SpkIDLoader):
     def __init__(self, utts: str, hparams, feats_scp: str, utt2phns: str, phn2id: str,
-                 utt2phn_duration: str, utt2spk: str, var_scp: str):
+                 utt2phn_duration: str, utt2spk: str, var_scp: str, is_log_pitch: bool = True, pitch_energy_dims: tuple = (3, 4)):
         """
         This loader loads speaker ID together with variance (4-dim pitch, 1-dim energy)
         """
         super(SpkIDLoaderWithPE, self).__init__(utts, hparams, feats_scp, utt2phns, phn2id, utt2phn_duration, utt2spk)
+        self.is_log_pitch = is_log_pitch
+        self.pitch_energy_dims = pitch_energy_dims
+        if self.is_log_pitch:
+            print(f"Input pitch is log pitch. Will convert to raw pitch in training.")
         self.utt2var = self.get_utt2var(var_scp)
 
     def get_utt2var(self, utt2var: str) -> dict:
@@ -160,15 +164,21 @@ class SpkIDLoaderWithPE(SpkIDLoader):
         return res
 
     def get_var_from_kaldi(self, utt):
-        # returns raw log pitch and energy
-        # var comprises pov, pitch feature, delta pitch feature, and raw log pitch, and energy. See notion.
+        # returns raw pitch and energy ( not log )
+        # var comprises pov, pitch feature, delta pitch feature, and raw log pitch, and energy. See notion. Energy is probably not log.
         var = self.utt2var[utt]
         var = torch.FloatTensor(var).squeeze()
-        assert 5 in var.shape
-        if var.shape[0] == 5:
-            return var[3, :], var[4, :]
+        # assert 5 in var.shape
+        if not self.is_log_pitch:
+            if var.shape[0] == 5:
+                return var[self.pitch_energy_dims[0], :], var[self.pitch_energy_dims[1], :]
+            else:
+                return var.T[self.pitch_energy_dims[0], :], var.T[self.pitch_energy_dims[1], :]
         else:
-            return var.T[3, :], var.T[4, :]
+            if var.shape[0] == 5:
+                return var[self.pitch_energy_dims[0], :].exp(), var[self.pitch_energy_dims[1], :]
+            else:
+                return var.T[self.pitch_energy_dims[0], :].exp(), var.T[self.pitch_energy_dims[1], :]
 
     def get_mel_text_pair(self, utt):
         # separate filename and text
@@ -179,7 +189,7 @@ class SpkIDLoaderWithPE(SpkIDLoader):
         pitch, energy = self.get_var_from_kaldi(utt)
 
         assert sum(dur) == mel.shape[1] == pitch.shape[0] == energy.shape[0], \
-            f"Frame length mismatch: utt {utt}, dur: {sum(dur)}, mel: {mel.shape[1]}, pitch: {pitch.shape[1]}"
+            f"Frame length mismatch: utt {utt}, dur: {sum(dur)}, mel: {mel.shape[1]}, pitch: {pitch.shape[0]}"
 
         res = {
             "utt": utt,
@@ -245,12 +255,17 @@ class XvectorLoader(BaseLoader):
 
 class XvectorLoaderWithPE(XvectorLoader):
     def __init__(self, utts: str, hparams, feats_scp: str, utt2phns: str, phn2id: str,
-                 utt2phn_duration: str, utt2spk_name: str, spk_xvector_scp: str, var_scp:str):
+                 utt2phn_duration: str, utt2spk_name: str, spk_xvector_scp: str, var_scp: str, is_log_pitch: bool = True,
+                 pitch_energy_dims: tuple = (3, 4)):
         """
         This loader loads speaker ID together with variance (4-dim pitch, 1-dim energy)
         """
         super(XvectorLoaderWithPE, self).__init__(utts, hparams, feats_scp, utt2phns, phn2id,
-                 utt2phn_duration, utt2spk_name, spk_xvector_scp)
+                                                  utt2phn_duration, utt2spk_name, spk_xvector_scp)
+        self.is_log_pitch = is_log_pitch
+        self.pitch_energy_dims = pitch_energy_dims
+        if self.is_log_pitch:
+            print(f"Input pitch is log pitch. Will convert to raw pitch in training.")
         self.utt2var = self.get_utt2var(var_scp)
 
     def get_utt2var(self, utt2var: str) -> dict:
@@ -259,15 +274,21 @@ class XvectorLoaderWithPE(XvectorLoader):
         return res
 
     def get_var_from_kaldi(self, utt):
-        # returns raw log pitch and energy
+        # returns raw pitch and energy ( not log )
         # var comprises pov, pitch feature, delta pitch feature, and raw log pitch, and energy. See notion.
         var = self.utt2var[utt]
         var = torch.FloatTensor(var).squeeze()
-        assert 5 in var.shape
-        if var.shape[0] == 5:
-            return var[3, :], var[4, :]
+        # assert 5 in var.shape
+        if not self.is_log_pitch:
+            if var.shape[0] == 5:
+                return var[self.pitch_energy_dims[0], :], var[self.pitch_energy_dims[1], :]
+            else:
+                return var.T[self.pitch_energy_dims[0], :], var.T[self.pitch_energy_dims[1], :]
         else:
-            return var.T[3, :], var.T[4, :]
+            if var.shape[0] == 5:
+                return var[self.pitch_energy_dims[0], :].exp(), var[self.pitch_energy_dims[1], :]
+            else:
+                return var.T[self.pitch_energy_dims[0], :].exp(), var.T[self.pitch_energy_dims[1], :]
 
     def get_mel_text_pair(self, utt):
         phn_ids = self.get_text(utt)
@@ -277,7 +298,7 @@ class XvectorLoaderWithPE(XvectorLoader):
         pitch, energy = self.get_var_from_kaldi(utt)
 
         assert sum(dur) == mel.shape[1] == pitch.shape[0] == energy.shape[0], \
-            f"Frame length mismatch: utt {utt}, dur: {sum(dur)}, mel: {mel.shape[1]}, pitch: {pitch.shape[1]}"
+            f"Frame length mismatch: utt {utt}, dur: {sum(dur)}, mel: {mel.shape[1]}, pitch: {pitch.shape[0]}"
         assert len(dur) == len(phn_ids), \
             f"Duration length and text length mismatch :utt {utt}, dur: {len(dur)}, text: {len(phn_ids)}"
 
@@ -291,4 +312,3 @@ class XvectorLoaderWithPE(XvectorLoader):
             "energy": energy
         }
         return res
-

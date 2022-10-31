@@ -14,6 +14,7 @@ if __name__ == '__main__':
         config = yaml.load(f, Loader=yaml.FullLoader)
 
     data_conf = config['data']
+    pitch_energy_dims = data_conf['pitch_energy_dims']
     pitch_min, pitch_max, energy_min, energy_max = np.inf, -np.inf, np.inf, -np.inf
     max_frame_len = 1000
     for entry in ["train_var_scp"]:
@@ -23,7 +24,7 @@ if __name__ == '__main__':
             shape = var.shape
             frame_len = shape[0] if shape[1] == 5 else shape[1]
             max_frame_len = max(frame_len, max_frame_len)
-            p, e = (var[3, :], var[4, :]) if shape[0] == 5 else (var.T[3, :], var.T[4, :])
+            p, e = (var[pitch_energy_dims[0], :], var[pitch_energy_dims[1], :]) if shape[0] == 5 else (var.T[pitch_energy_dims[0], :], var.T[pitch_energy_dims[1], :])
             pitch_min = min(p.min(), pitch_min)
             pitch_max = max(p.max(), pitch_max)
             energy_min = min(e.min(), energy_min)

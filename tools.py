@@ -128,7 +128,9 @@ def get_correct_class(hps, train=True):
                              utt2phn_duration=hps.data.train_utt2phn_duration,
                              utt2spk=hps.data.train_utt2spk,
                              utt2phns=hps.data.train_utt2phns,
-                             var_scp=hps.data.train_var_scp)
+                             var_scp=hps.data.train_var_scp,
+                             is_log_pitch=hps.data.is_log_pitch,
+                             pitch_energy_dims=tuple(hps.data.pitch_energy_dims))
         else:  # no pitch energy
             loader = loaders.XvectorLoaderWithPE
             collate = collates.XvectorCollateWithPE
@@ -141,7 +143,9 @@ def get_correct_class(hps, train=True):
                              utt2phn_duration=hps.data.train_utt2phn_duration,
                              spk_xvector_scp=hps.data.train_spk_xvector_scp,
                              utt2spk_name=hps.data.train_utt2spk,
-                             var_scp=hps.data.train_var_scp)
+                             var_scp=hps.data.train_var_scp,
+                             is_log_pitch=hps.data.is_log_pitch,
+                             pitch_energy_dims=tuple(hps.data.pitch_energy_dims))
     else:
         if not hps.xvector:
             loader = loaders.SpkIDLoaderWithPE
@@ -154,7 +158,9 @@ def get_correct_class(hps, train=True):
                              utt2phn_duration=hps.data.val_utt2phn_duration,
                              utt2spk=hps.data.val_utt2spk,
                              utt2phns=hps.data.val_utt2phns,
-                             var_scp=hps.data.val_var_scp)
+                             var_scp=hps.data.val_var_scp,
+                             is_log_pitch=hps.data.is_log_pitch,
+                             pitch_energy_dims=tuple(hps.data.pitch_energy_dims))
         else:  # no pitch energy
             loader = loaders.XvectorLoaderWithPE
             collate = collates.XvectorCollateWithPE
@@ -167,7 +173,9 @@ def get_correct_class(hps, train=True):
                              utt2phn_duration=hps.data.val_utt2phn_duration,
                              spk_xvector_scp=hps.data.val_spk_xvector_scp,
                              utt2spk_name=hps.data.val_utt2spk,
-                             var_scp=hps.data.val_var_scp)
+                             var_scp=hps.data.val_var_scp,
+                             is_log_pitch=hps.data.is_log_pitch,
+                             pitch_energy_dims=tuple(hps.data.pitch_energy_dims))
     return dataset, collate(), model
 
 
