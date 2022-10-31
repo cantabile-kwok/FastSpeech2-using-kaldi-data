@@ -103,6 +103,8 @@ if __name__ == '__main__':
     config['model']['n_vocab'] = max_value + 1
     config['model']['max_seq_len'] = max_frame_len + 1
 
+    # ======== save config ============
+    target_config = "processed_configs/" + os.path.basename(args.config)
     with open(args.config, 'w') as f:
         yaml.dump(config, f, indent=4)
 
