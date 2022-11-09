@@ -75,6 +75,15 @@ will only synthesize this utterance. It can be used together with speaker contro
 You can also use `-s` or `--seed` to control random seed, and `--dataset train/val` to select a dataset to be synthesized (the default is val).
 
 ---
-## Update for pitch processing
-Please use a variance.scp **before CMVN**. Then set `is_log_pitch` in conf to True, then run `get_variance_range.py`. 
-This will automatically process the variance (i.e. find mean and variance, normalize, and record min/max values) and save to filelists/${name}/processed_pe.scp (and ark).
+## Update for pitch processing (2022.11.9)
+Now we support three kinds of pitch features:
+1. Use log-pitch directly from Kaldi.
+2. Use raw pitch from Kaldi but normalize to zero mean and unit variance.
+3. Use pitch from PyWorld package. The pitches at unvoiced parts are zero, unlike Kaldi pitch.
+
+In each case do the followings. **Note**: the new config file now won't replace the old one, but instead, be saved in the `processed_configs/` directory. Further training and inference should use those.
+1. Fill the config with an un-normalized pitch/energy file. Note the `log_pitch_to_raw_pitch` should be set to **False**, and mind the `pitch_energy_dims`. Then run `python get_variance_range.py` to normalize them and obtain max/min values for quantization. This will result in `processed_pe.ark,scp` that only contains pitch and energy as 0-th and 1-st entry.
+2. Fill the config with an un-normalized pitch/energy file. Note the `log_pitch_to_raw_pitch` should be set to **True**, and mind the `pitch_energy_dims`. Then run the same script.
+3. We provide another script `extract_pyworld_pitch.py`. The usage can be seen in `extract_pyworld_pitch.sh`. This uses multiprocessing but still slower than Kaldi. The extracted pitches are concatenated with Kaldi energies, and saved in `pyworld` directory in specified target dir. In this pyworld extraction, following the original code by ming024, we perform outlier removal for the pitch of each utterance before calculating stats. We found when most of the values are zero, no values will be kept then. So we skip these utterances. **NOTE**: this script won't change config. You might need to fill the entry in config file manually, with new pitch and energy.
+
+We still recommend to use case 1. or 2. (i.e. use Kaldi pitch, anyway). It seems PyWorld pitches are not expected to produce comparable synthetic results. 

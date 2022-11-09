@@ -119,7 +119,7 @@ class VarianceAdaptor(nn.Module):
             x = x + pitch_embedding
         if self.energy_feature_level == "phoneme_level":
             energy_prediction, energy_embedding = self.get_energy_embedding(
-                x, energy_target, src_mask, p_control
+                x, energy_target, src_mask, e_control
             )
             x = x + energy_embedding
 
@@ -138,6 +138,7 @@ class VarianceAdaptor(nn.Module):
             pitch_prediction, pitch_embedding = self.get_pitch_embedding(
                 x, pitch_target, mel_mask, p_control
             )
+            # print(pitch_prediction)
             x = x + pitch_embedding
         if self.energy_feature_level == "frame_level":
             energy_prediction, energy_embedding = self.get_energy_embedding(
@@ -146,6 +147,8 @@ class VarianceAdaptor(nn.Module):
             x = x + energy_embedding
 
         # print(f"Before variance adaptor returning, pitch prediction shape is {pitch_prediction.shape}")
+        # print(f"Before variance adaptor returning, pitch prediction is {pitch_prediction}")
+        # print(f"Before variance adaptor returning, duration rounded is {duration_rounded}")
         return (
             x,
             pitch_prediction,

@@ -17,12 +17,15 @@ if __name__ == '__main__':
 
     data_conf = config['data']
     pitch_energy_dims = data_conf['pitch_energy_dims']
-    if not data_conf['is_log_pitch']:
+
+    utts = open(data_conf['train_utts']).readlines()
+    utts = list(map(lambda x: x.strip(), utts))  # utts for training
+    if not data_conf['log_pitch_to_raw_pitch']:
         pitch_min, pitch_max, energy_min, energy_max = np.inf, -np.inf, np.inf, -np.inf
         max_frame_len = 1000
         for entry in ["train_var_scp"]:
             scp = kaldiio.load_scp(data_conf[entry])
-            for key in tqdm(scp.keys(), total=len(list(scp.keys()))):
+            for key in tqdm(utts):
                 var = scp[key]
                 shape = var.shape
                 frame_len = shape[0]
@@ -48,7 +51,7 @@ if __name__ == '__main__':
             # first pass compute pitch & energy stats
             for entry in ["train_var_scp"]:
                 scp = kaldiio.load_scp(data_conf[entry])
-                for key in tqdm(scp.keys(), total=len(list(scp.keys()))):
+                for key in tqdm(utts):
                     var = scp[key]
                     shape = var.shape
                     frame_len = shape[0]
@@ -65,9 +68,13 @@ if __name__ == '__main__':
             met_utts = set()
             pitch_min, pitch_max, energy_min, energy_max = np.inf, -np.inf, np.inf, -np.inf
 
+            val_utts = open(data_conf['val_utts']).readlines()
+            val_utts = list(map(lambda x: x.strip(), val_utts))
             for entry in ['train_var_scp', 'val_var_scp']:
                 scp = kaldiio.load_scp(data_conf[entry])
-                for key in tqdm(scp.keys(), total=len(list(scp.keys()))):
+                for key in tqdm(utts + val_utts):
+                    if key not in scp.keys():
+                        continue
                     if key in met_utts:
                         continue
                     else:
@@ -105,7 +112,7 @@ if __name__ == '__main__':
 
     # ======== save config ============
     target_config = "processed_configs/" + os.path.basename(args.config)
-    with open(args.config, 'w') as f:
+    with open(target_config, 'w') as f:
         yaml.dump(config, f, indent=4)
 
     print("Finished")

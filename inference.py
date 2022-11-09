@@ -71,13 +71,14 @@ if __name__ == '__main__':
                     texts=x,
                     src_lens=x_lengths,
                     max_src_len=max(x_lengths).item(),
+                    d_control=1.0
                 )
                 mel_pred = output[0].cpu().numpy().squeeze(0)
 
                 if args.use_control_spk:
                     save_utt_name = f"[spk_{args.control_spk_name if hps.xvector else args.control_spk_id}]{utts[0]}"
                 else:
-                    save_utt_name = f"{utts[0]}_with_GT_spk"
+                    save_utt_name = utts[0]
 
                 feats(save_utt_name, mel_pred)
 
