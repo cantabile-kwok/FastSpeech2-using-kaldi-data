@@ -165,7 +165,7 @@ class FastSpeech2Xvector(nn.Module):
         e_control=1.0,
         d_control=1.0,
     ):
-        src_masks = get_mask_from_lengths(src_lens, max_src_len)
+        src_masks = get_mask_from_lengths(src_lens, max_src_len)  # [B, T]
         mel_masks = (
             get_mask_from_lengths(mel_lens, max_mel_len)
             if mel_lens is not None

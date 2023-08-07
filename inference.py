@@ -27,6 +27,8 @@ if __name__ == '__main__':
     ckpt = tools.latest_checkpoint_path(hps.model_dir, "G_*.pth")
     model, _, _, _ = tools.load_checkpoint(ckpt, model, None)
     print(f"Loaded checkpoint from {ckpt}")
+    param_sum = sum([p.numel() for p in model.parameters()])
+    print(f"Total parameters: {param_sum}")
     model.eval()
 
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")

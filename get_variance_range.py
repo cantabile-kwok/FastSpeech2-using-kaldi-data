@@ -19,7 +19,7 @@ if __name__ == '__main__':
     pitch_energy_dims = data_conf['pitch_energy_dims']
 
     utts = open(data_conf['train_utts']).readlines()
-    utts = list(map(lambda x: x.strip(), utts))  # utts for training
+    utts = list(map(lambda x: x.strip(), utts))  # utts for training, instead all utts
     if not data_conf['log_pitch_to_raw_pitch']:
         pitch_min, pitch_max, energy_min, energy_max = np.inf, -np.inf, np.inf, -np.inf
         max_frame_len = 1000
@@ -65,28 +65,38 @@ if __name__ == '__main__':
             energy_mean, energy_std = np.mean(cur_raw_energies), np.std(cur_raw_energies)
 
             # second pass dump and save
-            met_utts = set()
             pitch_min, pitch_max, energy_min, energy_max = np.inf, -np.inf, np.inf, -np.inf
 
-            val_utts = open(data_conf['val_utts']).readlines()
-            val_utts = list(map(lambda x: x.strip(), val_utts))
-            for entry in ['train_var_scp', 'val_var_scp']:
-                scp = kaldiio.load_scp(data_conf[entry])
-                for key in tqdm(utts + val_utts):
-                    if key not in scp.keys():
-                        continue
-                    if key in met_utts:
-                        continue
-                    else:
-                        met_utts.add(key)
-                    var = scp[key]
-                    normalized_pitch = (np.exp(var.T[pitch_energy_dims[0], :]) - pitch_mean) / pitch_std
-                    normalized_energy = (var.T[pitch_energy_dims[1], :] - energy_mean) / energy_std
-                    pitch_min = min(pitch_min, min(normalized_pitch))
-                    pitch_max = max(pitch_max, max(normalized_pitch))
-                    energy_min = min(energy_min, min(normalized_energy))
-                    energy_max = max(energy_max, max(normalized_energy))
-                    writer(key, np.stack([normalized_pitch, normalized_energy], axis=1))
+            # val_utts = open(data_conf['val_utts']).readlines()
+            # val_utts = list(map(lambda x: x.strip(), val_utts))
+            # for entry in ['train_var_scp', 'val_var_scp']:
+            #     scp = kaldiio.load_scp(data_conf[entry])
+            #     for key in tqdm(utts + val_utts):
+            #         if key not in scp.keys():
+            #             continue
+            #         if key in met_utts:
+            #             continue
+            #         else:
+            #             met_utts.add(key)
+            # var_utts = kaldiio.load_scp(data_conf['train_var_scp']).keys()
+            # var_utts = var_utts.union(kaldiio.load_scp(data_conf['val_var_scp']).keys())
+            train_var_scp = kaldiio.load_scp(data_conf['train_var_scp'])
+            val_var_scp = kaldiio.load_scp(data_conf['val_var_scp'])
+
+            # We don't use the union of train utts and val utts. Instead, we use the entire variance.scp. Otherwise, other utts will be lost.
+            for key in tqdm(set(train_var_scp.keys()).union(set(val_var_scp.keys()))):
+                if key in train_var_scp.keys():
+                    var = train_var_scp[key]
+                else:
+                    var = val_var_scp[key]
+                # var = scp[key]
+                normalized_pitch = (np.exp(var.T[pitch_energy_dims[0], :]) - pitch_mean) / pitch_std
+                normalized_energy = (var.T[pitch_energy_dims[1], :] - energy_mean) / energy_std
+                pitch_min = min(pitch_min, min(normalized_pitch))
+                pitch_max = max(pitch_max, max(normalized_pitch))
+                energy_min = min(energy_min, min(normalized_energy))
+                energy_max = max(energy_max, max(normalized_energy))
+                writer(key, np.stack([normalized_pitch, normalized_energy], axis=1))
 
             data_conf['pitch_energy_dims'] = [0, 1]
             original_scp_dirpath = os.path.dirname(os.path.abspath(data_conf['train_var_scp']))

@@ -287,10 +287,6 @@ def get_hparams_decode():
     parser.add_argument('--control-spk-name', default=None, type=str, help='if use control spk, then which spk')
     parser.add_argument("--max-utt-num", default=100, type=int, help='maximum utts number to decode')
     parser.add_argument("--specify-utt-name", default=None, type=str, help='if specified, only decodes for that utt')
-    # parser.add_argument('-t', "--timesteps", type=int, default=10, help='how many timesteps to perform reverse diffusion')
-
-    # parser.add_argument("--stoc", action='store_true', default=False, help="Whether to add stochastic term into decoding")
-
 
     args = parser.parse_args()
     model_dir = os.path.join("./logs", args.model)

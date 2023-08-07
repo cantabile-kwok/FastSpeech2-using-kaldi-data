@@ -1,4 +1,4 @@
-# FastSpeech2 using Kaldi data
+# FastSpeech2 benchmark, using Kaldi data
 > Some people is habituated to use Kaldi & ESPnet feature & data. Meanwhile, the training & inference procedures in GlowTTS appears to be charming. So this project modifies [ming024's FastSpeech2 implementation](https://github.com/ming024/FastSpeech2) and [glow-tts official repo](https://github.com/jaywalnut310/glow-tts) so that we can train FastSpeech2 in GlowTTS style while using features extracted from Kaldi & ESPnet.
 
 ## Data Preparation

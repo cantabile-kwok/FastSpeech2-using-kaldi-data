@@ -76,7 +76,7 @@ class Encoder(nn.Module):
         batch_size, max_len = src_seq.shape[0], src_seq.shape[1]
 
         # -- Prepare masks
-        slf_attn_mask = mask.unsqueeze(1).expand(-1, max_len, -1)
+        slf_attn_mask = mask.unsqueeze(1).expand(-1, max_len, -1)  # [B, T, T]
 
         # -- Forward
         if not self.training and src_seq.shape[1] > self.max_seq_len:
